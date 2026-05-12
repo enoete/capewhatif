@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CAPE Grade What-If Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green-dark: #1a4731;
+    --green-mid: #2d6a4f;
+    --green-light: #40916c;
+    --green-pale: #d8f3dc;
+    --green-faint: #f0faf2;
+    --gold: #f4a01c;
+    --gold-pale: #fff4d6;
+    --gray-100: #f1f3f4;
+    --gray-300: #dadce0;
+    --gray-500: #9aa0a6;
+    --gray-700: #5f6368;
+    --gray-900: #202124;
+    --radius: 16px;
+    --shadow: 0 4px 24px rgba(26,71,49,0.10);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--green-faint); min-height: 100vh; color: var(--gray-900); }
+
+  header {
+    background: linear-gradient(135deg, var(--green-dark) 0%, var(--green-mid) 100%);
+    color: white; padding: 32px 24px 28px; text-align: center; overflow: hidden; position: relative;
+  }
+  header::before {
+    content: ''; position: absolute; top: -60px; right: -60px;
+    width: 220px; height: 220px; border-radius: 50%; background: rgba(255,255,255,0.05);
+  }
+  .header-badge {
+    display: inline-block; background: rgba(244,160,28,0.25); border: 1px solid rgba(244,160,28,0.5);
+    color: var(--gold); font-size: 11px; font-weight: 700; letter-spacing: 2px;
+    text-transform: uppercase; padding: 4px 14px; border-radius: 20px; margin-bottom: 12px;
+  }
+  header h1 { font-family: 'DM Serif Display', serif; font-size: clamp(22px, 5vw, 34px); line-height: 1.2; margin-bottom: 8px; }
+  header p { font-size: 14px; opacity: 0.8; max-width: 440px; margin: 0 auto; }
+  .weight-pills { display: flex; gap: 10px; justify-content: center; margin-top: 18px; flex-wrap: wrap; }
+  .pill { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); border-radius: 20px; padding: 5px 14px; font-size: 12px; font-weight: 600; color: white; }
+  .pill span { opacity: 0.65; font-weight: 400; }
+
+  main { max-width: 820px; margin: 0 auto; padding: 28px 16px 48px; display: flex; flex-direction: column; gap: 20px; }
+
+  .card { background: white; border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+  .card-header { background: var(--green-faint); border-bottom: 1px solid var(--green-pale); padding: 16px 22px; display: flex; align-items: center; gap: 12px; }
+  .card-icon { width: 32px; height: 32px; background: var(--green-mid); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; flex-shrink: 0; }
+  .card-header h2 { font-size: 15px; font-weight: 700; color: var(--green-dark); }
+  .card-header p { font-size: 12px; color: var(--gray-700); margin-top: 1px; }
+  .card-body { padding: 22px; }
+
+  /* SBA */
+  .sba-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .sba-label { font-size: 13px; font-weight: 600; color: var(--gray-700); min-width: 120px; }
+  .sba-input-wrap { display: flex; align-items: center; gap: 14px; flex: 1; min-width: 220px; }
+  input[type="range"] { -webkit-appearance: none; appearance: none; flex: 1; height: 8px; border-radius: 4px; background: var(--gray-300); outline: none; cursor: pointer; }
+  input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 26px; height: 26px; border-radius: 50%; background: var(--green-mid); box-shadow: 0 2px 8px rgba(45,106,79,0.5); cursor: pointer; }
+  input[type="range"]::-moz-range-thumb { width: 26px; height: 26px; border-radius: 50%; border: none; background: var(--green-mid); box-shadow: 0 2px 8px rgba(45,106,79,0.5); cursor: pointer; }
+  .sba-value-box { background: var(--green-dark); color: white; font-size: 15px; font-weight: 700; padding: 8px 14px; border-radius: 10px; min-width: 68px; text-align: center; line-height: 1.3; }
+  .sba-value-box small { display: block; font-size: 10px; opacity: 0.65; font-weight: 400; }
+  .sba-pct { font-size: 13px; color: var(--gray-500); min-width: 36px; }
+
+  /* Exam */
+  .exam-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 520px) { .exam-grid { grid-template-columns: 1fr; } }
+  .exam-card { border: 2px solid var(--gray-100); border-radius: 12px; padding: 18px; }
+  .exam-card-title { font-size: 13px; font-weight: 700; color: var(--green-dark); margin-bottom: 3px; }
+  .exam-card-sub { font-size: 11px; color: var(--gray-500); margin-bottom: 14px; }
+  .score-input-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .score-number { width: 72px; border: 2px solid var(--gray-300); border-radius: 8px; padding: 8px 10px; font-size: 17px; font-weight: 700; color: var(--green-dark); text-align: center; outline: none; font-family: 'DM Sans', sans-serif; -moz-appearance: textfield; transition: border-color 0.2s; }
+  .score-number::-webkit-inner-spin-button, .score-number::-webkit-outer-spin-button { -webkit-appearance: none; }
+  .score-number:focus { border-color: var(--green-light); }
+  .score-out-of { font-size: 14px; color: var(--gray-500); }
+  .score-pct-bar { height: 8px; background: var(--gray-100); border-radius: 4px; overflow: hidden; }
+  .score-pct-fill { height: 100%; border-radius: 4px; background: var(--green-light); width: 0; transition: width 0.35s ease; }
+  .score-pct-label { font-size: 11px; color: var(--gray-500); margin-top: 5px; text-align: right; }
+
+  /* Total */
+  .total-bar { background: var(--green-faint); border: 1px solid var(--green-pale); border-radius: 12px; padding: 16px 20px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-top: 16px; }
+  .total-bar-label { font-size: 13px; font-weight: 700; color: var(--green-dark); }
+  .total-breakdown { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
+  .breakdown-chip { background: white; border: 1px solid var(--green-pale); border-radius: 6px; padding: 4px 10px; font-size: 11px; color: var(--gray-700); }
+  .breakdown-chip strong { color: var(--green-dark); }
+  .total-score-big { font-family: 'DM Serif Display', serif; font-size: 30px; color: var(--green-dark); text-align: right; white-space: nowrap; }
+  .total-score-big span { font-size: 14px; font-family: 'DM Sans', sans-serif; color: var(--gray-500); }
+
+  /* Grade badge */
+  .grade-display { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
+  .grade-badge { width: 96px; height: 96px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.4s ease; }
+  .grade-badge .grade-num { font-family: 'DM Serif Display', serif; font-size: 40px; line-height: 1; }
+  .grade-badge .grade-roman { font-size: 11px; font-weight: 700; letter-spacing: 1px; opacity: 0.7; }
+  .grade-1 { background: #d4edda; color: #155724; }
+  .grade-2 { background: #cce5ff; color: #004085; }
+  .grade-3 { background: #fff3cd; color: #856404; }
+  .grade-4 { background: #fde8d8; color: #8a3a00; }
+  .grade-5 { background: #f8d7da; color: #721c24; }
+  .grade-u { background: var(--gray-100); color: var(--gray-700); }
+  .grade-info { flex: 1; min-width: 180px; }
+  .grade-title { font-family: 'DM Serif Display', serif; font-size: 24px; margin-bottom: 4px; }
+  .grade-range { font-size: 12px; color: var(--gray-500); margin-bottom: 10px; }
+  .grade-desc { font-size: 13px; color: var(--gray-700); line-height: 1.6; }
+
+  /* Ruler */
+  .grade-ruler { display: flex; border-radius: 8px; overflow: visible; height: 22px; margin-top: 22px; }
+  .ruler-seg { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: white; position: relative; transition: all 0.3s; }
+  .ruler-seg:first-child { border-radius: 8px 0 0 8px; }
+  .ruler-seg:last-child  { border-radius: 0 8px 8px 0; }
+  .ruler-seg.active { box-shadow: 0 0 0 3px var(--green-dark), 0 0 0 5px rgba(26,71,49,0.2); border-radius: 4px; z-index: 1; }
+  .ruler-seg.active::after { content: '▲'; position: absolute; bottom: -17px; left: 50%; transform: translateX(-50%); font-size: 10px; color: var(--green-dark); }
+  .seg-1 { background: #28a745; }
+  .seg-2 { background: #007bff; }
+  .seg-3 { background: #ffc107; color: #333; }
+  .seg-4 { background: #fd7e14; }
+  .seg-5 { background: #dc3545; }
+  .seg-u { background: #aaa; }
+  .ruler-labels { display: flex; margin-top: 22px; }
+  .ruler-label { flex: 1; text-align: center; font-size: 10px; color: var(--gray-500); }
+
+  /* What-if table */
+  .whatif-table { width: 100%; border-collapse: separate; border-spacing: 0 6px; }
+  .whatif-table thead th { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--gray-500); padding: 4px 12px 8px; text-align: left; }
+  .whatif-table thead th:not(:first-child) { text-align: center; }
+  .whatif-row td { padding: 12px; font-size: 13px; background: white; border-top: 1px solid var(--gray-100); border-bottom: 1px solid var(--gray-100); }
+  .whatif-row td:first-child { border-left: 1px solid var(--gray-100); border-radius: 10px 0 0 10px; font-weight: 600; }
+  .whatif-row td:last-child { border-right: 1px solid var(--gray-100); border-radius: 0 10px 10px 0; text-align: center; }
+  .whatif-row td:not(:first-child):not(:last-child) { text-align: center; }
+  .whatif-row.current-grade td { background: var(--green-faint); border-color: var(--green-pale); }
+  .grade-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 7px; vertical-align: middle; }
+  .g1 { background: #28a745; } .g2 { background: #007bff; } .g3 { background: #ffc107; }
+  .g4 { background: #fd7e14; } .g5 { background: #dc3545; } .gu { background: #aaa; }
+  .here-tag { font-size: 10px; background: var(--green-pale); color: var(--green-dark); padding: 1px 8px; border-radius: 8px; margin-left: 6px; }
+  .need-chip { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+  .need-ok         { background: #d4edda; color: #155724; }
+  .need-warn       { background: #fff3cd; color: #856404; }
+  .need-hard       { background: #fde8d8; color: #8a3a00; }
+  .need-impossible { background: #f8d7da; color: #721c24; }
+  .need-done       { background: #cce5ff; color: #004085; }
+
+  .info-note { background: var(--gold-pale); border-left: 3px solid var(--gold); border-radius: 0 8px 8px 0; padding: 12px 16px; font-size: 12px; color: #5a4000; line-height: 1.6; margin-top: 18px; }
+  .info-note strong { color: #3a2800; }
+
+  @media (max-width: 480px) {
+    .grade-display { flex-direction: column; align-items: flex-start; }
+    .grade-badge { width: 76px; height: 76px; }
+    .grade-badge .grade-num { font-size: 32px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-badge">CFBC · CAPE</div>
+  <h1>Grade What-If Calculator</h1>
+  <p>Enter your SBA and exam scores to see your current grade — and exactly what you need to move up.</p>
+  <div class="weight-pills">
+    <div class="pill">SBA <span>20%</span></div>
+    <div class="pill">Paper 1 <span>30% · /45</span></div>
+    <div class="pill">Paper 2 <span>50% · /75</span></div>
+  </div>
+</header>
+
+<main>
+
+  <!-- SBA Card -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">📋</div>
+      <div>
+        <h2>School Based Assessment (SBA)</h2>
+        <p>Already submitted — this is your locked-in mark</p>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="sba-row">
+        <div class="sba-label">Your SBA mark</div>
+        <div class="sba-input-wrap">
+          <input type="range" id="sbaSlider" min="0" max="20" step="0.5" value="15">
+          <div class="sba-value-box" id="sbaVal">15.0<small>/ 20</small></div>
+          <div class="sba-pct" id="sbaPct">75%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Exam Scores Card -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">✏️</div>
+      <div>
+        <h2>Exam Scores</h2>
+        <p>Type your actual or expected scores — everything updates instantly</p>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="exam-grid">
+        <div class="exam-card">
+          <div class="exam-card-title">📝 Paper 1 — Multiple Choice</div>
+          <div class="exam-card-sub">Out of 45 marks · Worth 30% of final grade</div>
+          <div class="score-input-row">
+            <input type="number" class="score-number" id="p1Score" min="0" max="45" value="30">
+            <div class="score-out-of">/ 45</div>
+          </div>
+          <div class="score-pct-bar"><div class="score-pct-fill" id="p1Bar"></div></div>
+          <div class="score-pct-label" id="p1Lbl"></div>
+        </div>
+        <div class="exam-card">
+          <div class="exam-card-title">📄 Paper 2 — Structured / Essay</div>
+          <div class="exam-card-sub">Out of 75 marks · Worth 50% of final grade</div>
+          <div class="score-input-row">
+            <input type="number" class="score-number" id="p2Score" min="0" max="75" value="45">
+            <div class="score-out-of">/ 75</div>
+          </div>
+          <div class="score-pct-bar"><div class="score-pct-fill" id="p2Bar"></div></div>
+          <div class="score-pct-label" id="p2Lbl"></div>
+        </div>
+      </div>
+
+      <div class="total-bar">
+        <div class="total-bar-label">Total Score</div>
+        <div class="total-breakdown" id="chips"></div>
+        <div class="total-score-big" id="totalDisp">0.0<span>%</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Grade Card -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">🏆</div>
+      <div>
+        <h2>Your Grade</h2>
+        <p>Based on CFBC/CAPE grade boundaries</p>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="grade-display">
+        <div class="grade-badge" id="gradeBadge">
+          <div class="grade-num" id="gradeNum">—</div>
+          <div class="grade-roman" id="gradeRoman">—</div>
+        </div>
+        <div class="grade-info">
+          <div class="grade-title" id="gradeTitle">—</div>
+          <div class="grade-range" id="gradeRange">—</div>
+          <div class="grade-desc"  id="gradeDesc">—</div>
+        </div>
+      </div>
+      <div class="grade-ruler">
+        <div class="ruler-seg seg-1" id="rseg1">I</div>
+        <div class="ruler-seg seg-2" id="rseg2">II</div>
+        <div class="ruler-seg seg-3" id="rseg3">III</div>
+        <div class="ruler-seg seg-4" id="rseg4">IV</div>
+        <div class="ruler-seg seg-5" id="rseg5">V</div>
+        <div class="ruler-seg seg-u" id="rseg6">—</div>
+      </div>
+      <div class="ruler-labels">
+        <div class="ruler-label">≥81%</div>
+        <div class="ruler-label">71–80%</div>
+        <div class="ruler-label">61–70%</div>
+        <div class="ruler-label">51–60%</div>
+        <div class="ruler-label">40–50%</div>
+        <div class="ruler-label">&lt;40%</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- What-if Table Card -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">🎯</div>
+      <div>
+        <h2>What Do I Need?</h2>
+        <p>Required exam marks to reach each grade, given your SBA</p>
+      </div>
+    </div>
+    <div class="card-body">
+      <table class="whatif-table">
+        <thead>
+          <tr>
+            <th>Target Grade</th>
+            <th>Paper 1 <span style="font-weight:400;text-transform:none">(/ 45)</span></th>
+            <th>Paper 2 <span style="font-weight:400;text-transform:none">(/ 75)</span></th>
+            <th>Feasibility</th>
+          </tr>
+        </thead>
+        <tbody id="wiBody"></tbody>
+      </table>
+      <div class="info-note">
+        <strong>📌 Note on grade boundaries:</strong> The boundaries used here are: Grade I ≥81%, Grade II 71–80%, Grade III 61–70%, Grade IV 51–60%, Grade V 40–50%. CXC adjusts boundaries each year based on cohort performance, so your actual grade may differ slightly. <strong>Aim for at least 50%</strong> to secure a Grade V pass — but always push higher!
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+var GRADES = [
+  { g:1, roman:'I',   label:'Excellent',    min:81, max:100, cls:'grade-1', dot:'g1',
+    desc:'Outstanding! You have demonstrated exceptional mastery of the syllabus.' },
+  { g:2, roman:'II',  label:'Very Good',    min:71, max:80,  cls:'grade-2', dot:'g2',
+    desc:'Strong performance — well above the acceptable standard.' },
+  { g:3, roman:'III', label:'Good',         min:61, max:70,  cls:'grade-3', dot:'g3',
+    desc:'You have met the standard comfortably. A push for Grade II is within reach.' },
+  { g:4, roman:'IV',  label:'Satisfactory', min:51, max:60,  cls:'grade-4', dot:'g4',
+    desc:'A solid pass. Focus on exam technique and past papers to move up.' },
+  { g:5, roman:'V',   label:'Acceptable',   min:40, max:50,  cls:'grade-5', dot:'g5',
+    desc:'Minimum acceptable pass. Work on your weaker modules to improve.' },
+  { g:6, roman:'—',   label:'Below Pass',   min:0,  max:39,  cls:'grade-u', dot:'gu',
+    desc:'Did not meet the minimum standard. See your teacher for a review plan.' }
+];
+
+var sba=15, p1=30, p2=45;
+
+function fmt1(n){ return n.toFixed(1); }
+
+function calcTotal(s,a,b){
+  var sp = s/20*100, ap = a/45*100, bp = b/75*100;
+  return { sp:sp, ap:ap, bp:bp, total: sp*0.20 + ap*0.30 + bp*0.50 };
+}
+
+function getGrade(t){
+  for(var i=0;i<GRADES.length;i++) if(t>=GRADES[i].min) return GRADES[i];
+  return GRADES[GRADES.length-1];
+}
+
+function neededPct(s, targetMin){
+  var sContrib = s/20*100*0.20;
+  return (targetMin - sContrib)/0.80;
+}
+
+function feasibility(pct){
+  if(pct<=0)   return {cls:'need-done',       txt:'✅ Already there'};
+  if(pct>100)  return {cls:'need-impossible', txt:'✗ Not possible'};
+  if(pct<=50)  return {cls:'need-ok',         txt:'🟢 Very achievable'};
+  if(pct<=70)  return {cls:'need-warn',       txt:'🟡 Challenging'};
+  if(pct<=90)  return {cls:'need-hard',       txt:'🔴 Very difficult'};
+  return              {cls:'need-impossible', txt:'⚫ Extremely hard'};
+}
+
+function recalc(){
+  var c = calcTotal(sba, p1, p2);
+
+  // Bars & labels
+  document.getElementById('p1Bar').style.width = Math.min(100, c.ap) + '%';
+  document.getElementById('p2Bar').style.width = Math.min(100, c.bp) + '%';
+  document.getElementById('p1Lbl').innerHTML = fmt1(c.ap) + '% &rarr; contributes <strong>' + fmt1(c.ap*0.30) + '%</strong>';
+  document.getElementById('p2Lbl').innerHTML = fmt1(c.bp) + '% &rarr; contributes <strong>' + fmt1(c.bp*0.50) + '%</strong>';
+
+  // Chips
+  var html = [
+    'SBA: <strong>' + fmt1(c.sp*0.20) + '%</strong>',
+    'P1: <strong>'  + fmt1(c.ap*0.30) + '%</strong>',
+    'P2: <strong>'  + fmt1(c.bp*0.50) + '%</strong>'
+  ].map(function(t){return '<div class="breakdown-chip">'+t+'</div>';}).join('');
+  document.getElementById('chips').innerHTML = html;
+  document.getElementById('totalDisp').innerHTML = fmt1(c.total) + '<span>%</span>';
+
+  // Grade badge
+  var gi = getGrade(c.total);
+  var badge = document.getElementById('gradeBadge');
+  badge.className = 'grade-badge ' + gi.cls;
+  document.getElementById('gradeNum').textContent   = gi.g<=5 ? gi.g : '—';
+  document.getElementById('gradeRoman').textContent = gi.g<=5 ? ('GRADE '+gi.roman) : 'NO PASS';
+  document.getElementById('gradeTitle').textContent = gi.label;
+  document.getElementById('gradeRange').textContent =
+    'Range: ' + gi.min + '% – ' + (gi.max===100?'100':gi.max) + '%   ·   Your score: ' + fmt1(c.total) + '%';
+  document.getElementById('gradeDesc').textContent  = gi.desc;
+
+  // Ruler
+  for(var i=1;i<=6;i++) document.getElementById('rseg'+i).classList.remove('active');
+  document.getElementById('rseg'+(gi.g<=6?gi.g:6)).classList.add('active');
+
+  // What-if table
+  var tbody = document.getElementById('wiBody');
+  tbody.innerHTML = '';
+  for(var t=0;t<5;t++){
+    var tg      = GRADES[t];
+    var xpct    = neededPct(sba, tg.min);
+    var p1need  = Math.ceil(xpct/100*45);
+    var p2need  = Math.ceil(xpct/100*75);
+    var already = xpct <= 0;
+    var p1str   = already ? '—' : (p1need>45 ? '>45' : Math.max(0,p1need)+' / 45');
+    var p2str   = already ? '—' : (p2need>75 ? '>75' : Math.max(0,p2need)+' / 75');
+    var feas    = feasibility(xpct);
+    var isCurr  = (gi.g === tg.g);
+
+    var tr = document.createElement('tr');
+    tr.className = 'whatif-row' + (isCurr ? ' current-grade' : '');
+    tr.innerHTML =
+      '<td><span class="grade-dot '+tg.dot+'"></span>Grade '+tg.roman+' — '+tg.label+
+        (isCurr ? '<span class="here-tag">YOU ARE HERE</span>' : '') + '</td>'+
+      '<td>'+(already?'<span style="color:var(--gray-500)">—</span>':'<strong>'+p1str+'</strong>')+'</td>'+
+      '<td>'+(already?'<span style="color:var(--gray-500)">—</span>':'<strong>'+p2str+'</strong>')+'</td>'+
+      '<td><span class="need-chip '+feas.cls+'">'+feas.txt+'</span></td>';
+    tbody.appendChild(tr);
+  }
+}
+
+// Event wiring
+document.getElementById('sbaSlider').addEventListener('input', function(){
+  sba = parseFloat(this.value);
+  document.getElementById('sbaVal').innerHTML = sba.toFixed(1)+'<small>/ 20</small>';
+  document.getElementById('sbaPct').textContent = Math.round(sba/20*100)+'%';
+  recalc();
+});
+
+function wireScore(id, max){
+  var el = document.getElementById(id);
+  function go(){
+    var v = parseFloat(el.value);
+    if(isNaN(v)||v<0) v=0;
+    if(v>max) v=max;
+    el.value = v;
+    if(id==='p1Score') p1=v;
+    if(id==='p2Score') p2=v;
+    recalc();
+  }
+  el.addEventListener('input',  go);
+  el.addEventListener('change', go);
+  el.addEventListener('keyup',  go);
+}
+wireScore('p1Score', 45);
+wireScore('p2Score', 75);
+
+// Run on load
+window.addEventListener('DOMContentLoaded', recalc);
+</script>
+</body>
+</html>
