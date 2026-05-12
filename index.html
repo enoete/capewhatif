@@ -139,6 +139,8 @@
   .need-hard       { background: #fde8d8; color: #8a3a00; }
   .need-impossible { background: #f8d7da; color: #721c24; }
   .need-done       { background: #cce5ff; color: #004085; }
+  .need-surpassed  { background: #e8e8f0; color: #555577; font-style: italic; }
+  .surpassed-grade td { opacity: 0.5; }
 
   .info-note { background: var(--gold-pale); border-left: 3px solid var(--gold); border-radius: 0 8px 8px 0; padding: 12px 16px; font-size: 12px; color: #5a4000; line-height: 1.6; margin-top: 18px; }
   .info-note strong { color: #3a2800; }
@@ -299,17 +301,17 @@
 <script>
 var GRADES = [
   { g:1, roman:'I',   label:'Excellent',    min:81, max:100, cls:'grade-1', dot:'g1',
-    desc:'Outstanding! You have demonstrated exceptional mastery of the syllabus.' },
+    desc:'🏅 BEAST MODE. You didn\'t just pass CAPE — you conquered it. Mr. Inanga is saving a front-row seat for you at UWI.' },
   { g:2, roman:'II',  label:'Very Good',    min:71, max:80,  cls:'grade-2', dot:'g2',
-    desc:'Strong performance — well above the acceptable standard.' },
+    desc:'🙌 Look at you go! Grade II is genuinely impressive. One more push and you\'re in Grade I territory — you\'re basically already there.' },
   { g:3, roman:'III', label:'Good',         min:61, max:70,  cls:'grade-3', dot:'g3',
-    desc:'You have met the standard comfortably. A push for Grade II is within reach.' },
+    desc:'😎 Solid work! Grade III is a real, respectable pass. You\'re in the "yes I passed CAPE" club. Now let\'s see if we can upgrade that membership.' },
   { g:4, roman:'IV',  label:'Satisfactory', min:51, max:60,  cls:'grade-4', dot:'g4',
-    desc:'A solid pass. Focus on exam technique and past papers to move up.' },
+    desc:'✊ You passed! Grade IV counts — don\'t let anyone tell you otherwise. A bit more past paper practice and Grade III is absolutely on the table.' },
   { g:5, roman:'V',   label:'Acceptable',   min:40, max:50,  cls:'grade-5', dot:'g5',
-    desc:'Minimum acceptable pass. Work on your weaker modules to improve.' },
+    desc:'🎉 It\'s a pass! A Grade V still opens doors. Aim to push a little higher — you\'re closer to Grade IV than you think!' },
   { g:6, roman:'—',   label:'Below Pass',   min:0,  max:39,  cls:'grade-u', dot:'gu',
-    desc:'Did not meet the minimum standard. See your teacher for a review plan.' }
+    desc:'💪 Not there yet — but the exam hasn\'t happened! This is exactly why we have a What-If calculator. You\'ve got time. Let\'s get to work.' }
 ];
 
 var sba=15, p1=30, p2=45;
@@ -331,13 +333,16 @@ function neededPct(s, targetMin){
   return (targetMin - sContrib)/0.80;
 }
 
-function feasibility(pct){
-  if(pct<=0)   return {cls:'need-done',       txt:'✅ Already there'};
-  if(pct>100)  return {cls:'need-impossible', txt:'✗ Not possible'};
-  if(pct<=50)  return {cls:'need-ok',         txt:'🟢 Very achievable'};
-  if(pct<=70)  return {cls:'need-warn',       txt:'🟡 Challenging'};
-  if(pct<=90)  return {cls:'need-hard',       txt:'🔴 Very difficult'};
-  return              {cls:'need-impossible', txt:'⚫ Extremely hard'};
+// currentPct = student's current weighted exam % (p1 and p2 combined contribution)
+// neededPct  = what % they need on exams to hit target
+function feasibility(neededPct, currentExamPct){
+  if(neededPct>100)   return {cls:'need-impossible', txt:'🙅 Not possible — even 100% won\'t do it'};
+  var gap = neededPct - currentExamPct;
+  if(gap <= 0)        return {cls:'need-done',       txt:'✅ On track — keep it up!'};
+  if(gap <= 8)        return {cls:'need-ok',         txt:'💪 Just a little more — go get it!'};
+  if(gap <= 18)       return {cls:'need-warn',       txt:'📚 Doable with solid revision!'};
+  if(gap <= 30)       return {cls:'need-hard',       txt:'🔥 Big push needed — start now!'};
+  return                     {cls:'need-impossible', txt:'😬 Pray AND study'};
 }
 
 function recalc(){
@@ -384,16 +389,29 @@ function recalc(){
     var already = xpct <= 0;
     var p1str   = already ? '—' : (p1need>45 ? '>45' : Math.max(0,p1need)+' / 45');
     var p2str   = already ? '—' : (p2need>75 ? '>75' : Math.max(0,p2need)+' / 75');
-    var feas    = feasibility(xpct);
-    var isCurr  = (gi.g === tg.g);
+    var currentExamPct = (c.ap * 0.30 + c.bp * 0.50) / 0.80;
+    var isCurr     = (gi.g === tg.g);
+    var isSurpassed = (tg.g > gi.g); // grade number higher = lower grade = already beaten
+    var feas;
+    if(isSurpassed){
+      var msgs = [
+        {cls:'need-surpassed', txt:'🚀 Already smashed this one!'},
+        {cls:'need-surpassed', txt:'😏 Way past this — aim higher!'},
+        {cls:'need-surpassed', txt:'✨ Left this grade in the dust!'},
+        {cls:'need-surpassed', txt:'🏃 You blew right past this!'},
+      ];
+      feas = msgs[tg.g % msgs.length];
+    } else {
+      feas = feasibility(xpct, currentExamPct);
+    }
 
     var tr = document.createElement('tr');
-    tr.className = 'whatif-row' + (isCurr ? ' current-grade' : '');
+    tr.className = 'whatif-row' + (isCurr ? ' current-grade' : '') + (isSurpassed ? ' surpassed-grade' : '');
     tr.innerHTML =
       '<td><span class="grade-dot '+tg.dot+'"></span>Grade '+tg.roman+' — '+tg.label+
         (isCurr ? '<span class="here-tag">YOU ARE HERE</span>' : '') + '</td>'+
-      '<td>'+(already?'<span style="color:var(--gray-500)">—</span>':'<strong>'+p1str+'</strong>')+'</td>'+
-      '<td>'+(already?'<span style="color:var(--gray-500)">—</span>':'<strong>'+p2str+'</strong>')+'</td>'+
+      '<td>'+(isSurpassed||already?'<span style="color:var(--gray-400)">—</span>':'<strong>'+p1str+'</strong>')+'</td>'+
+      '<td>'+(isSurpassed||already?'<span style="color:var(--gray-400)">—</span>':'<strong>'+p2str+'</strong>')+'</td>'+
       '<td><span class="need-chip '+feas.cls+'">'+feas.txt+'</span></td>';
     tbody.appendChild(tr);
   }
